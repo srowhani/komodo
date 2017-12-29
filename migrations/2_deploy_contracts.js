@@ -1,5 +1,5 @@
-const Chat = artifacts.require("./Chat.sol");
+const KomodoToken = artifacts.require("./KomodoToken.sol");
 
 module.exports = function(deployer) {
-  deployer.deploy(Chat, []);
+  deployer.deploy(KomodoToken, []);
 };
