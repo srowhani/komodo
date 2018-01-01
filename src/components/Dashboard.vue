@@ -1,5 +1,10 @@
 <template>
   <section id='dashboard'>
+    <div class='content'>
+      <div class='balance'>
+        
+      </div>
+    </div>
   </section>
 </template>
 
