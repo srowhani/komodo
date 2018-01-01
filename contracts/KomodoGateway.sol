@@ -1,4 +1,6 @@
-import "./KomodoToken.sol"
+pragma solidity ^0.4.18;
+
+import "./KomodoToken.sol";
 
 contract KomodoGateway {
   event CreatePot(uint _id);
@@ -24,7 +26,7 @@ contract KomodoGateway {
   address _tokenAddress;
   uint currentPot;
 
-  function KomodoGateway() {
+  function KomodoGateway() public {
     _god = msg.sender;
     _iterPot();
   }
@@ -34,22 +36,20 @@ contract KomodoGateway {
     _;
   }
 
-  function fetchCurrentPotId () returns (uint _id) {
-    _id = currentPot;
+  function fetchCurrentPotId () public view returns (uint) {
+    return currentPot;
   }
 
-  modifier setTokenAddress (address _t) public hasGodAccess {
+  function setTokenAddress (address _t) public hasGodAccess {
     TokenAddressChanged(_tokenAddress, _t);
     _tokenAddress = _t;
   }
 
-  function _iterPot() {
-    Pot p;
-    p._id = index;
-    p.size = 0;
+  function _iterPot() private {
+    Pot memory p;
+    p._id = currentPot;
+    p._numParticipants = 0;
     p.amount = 0;
     _pots[currentPot++] = p;
   }
-
-  function setTokenAddress
 }

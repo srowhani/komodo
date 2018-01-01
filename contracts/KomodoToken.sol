@@ -1,11 +1,12 @@
+pragma solidity ^0.4.18;
 //name this contract whatever you'd like
 import "./StandardToken.sol";
 contract KomodoToken is StandardToken {
   event Refund(address _addr);
 
-  function () {
+  function () public {
       Refund(msg.sender);
-      throw;
+      revert();
   }
 
   string public name;
@@ -13,7 +14,7 @@ contract KomodoToken is StandardToken {
   string public symbol;
   string public version = '1.0';
 
-  function KomodoToken() {
+  function KomodoToken() public {
     balances[msg.sender] = 10000;
     totalSupply = 10000;
     name = "Komodo";
@@ -22,11 +23,11 @@ contract KomodoToken is StandardToken {
   }
 
   /* Approves and then calls the receiving contract */
-  function approveAndCall(address _spender, uint256 _value, bytes _extraData) returns (bool success) {
+  function approveAndCall(address _spender, uint256 _value, bytes _extraData) public returns (bool success) {
     allowed[msg.sender][_spender] = _value;
     Approval(msg.sender, _spender, _value);
-    if (!_spender.call(bytes4(bytes32(sha3("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _value, this, _extraData)){
-      throw;
+    if (!_spender.call(bytes4(bytes32(keccak256("receiveApproval(address,uint256,address,bytes)"))), msg.sender, _value, this, _extraData)){
+      revert();
     }
     return true;
   }
