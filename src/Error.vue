@@ -1,23 +1,11 @@
 <template>
-  <div id='app'>
+  <div id='error'>
     <md-toolbar class="md-accent" md-elevation="1">
       <h3 class="md-title" style="flex: 1">
         {{title}}
       </h3>
-      <md-menu md-direction="bottom-end">
-        <md-avatar>
-          <img :src='account_logo'></img>
-        </md-avatar>
-        <md-button md-menu-trigger>{{default_account}}</md-button>
-
-        <md-menu-content>
-          <md-menu-item v-for="acc in accounts">
-            {{acc}}
-          </md-menu-item>
-        </md-menu-content>
-      </md-menu>
     </md-toolbar>
-    <router-view></router-view>
+    Must be logged in with MetaMask
   </div>
 </template>
 
@@ -25,24 +13,12 @@
 import 'vue-material/dist/vue-material.min.css'
 import Vue from 'vue'
 import VueMaterial from 'vue-material'
-import { toDataUrl } from 'ethereum-blockies'
 Vue.use(VueMaterial)
 export default {
-  name: 'app',
+  name: 'error',
   props: [
-    'title',
-    'default_account',
-    'accounts'
-  ],
-  computed: {
-    account_logo () {
-      if (!this.default_account) {
-        return
-      }
-      const s = toDataUrl(this.default_account)
-      return s
-    }
-  }
+    'title'
+  ]
 }
 
 </script>

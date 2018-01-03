@@ -1,14 +1,12 @@
 import contract from 'truffle-contract'
-import KomodoContract from '@contracts/KomodoToken.json'
+import KomodoContract from '@contracts/KomodoGateway.json'
 
 export default {
   contract: null,
-  instance: null,
   init () {
     this.contract = contract(KomodoContract)
-    this.contract.setProvider(window.web3.currentProvider)
-    return this.contract.deployed().then(_instance => {
-      this.instance = _instance
-    })
+    this.contract.setProvider(new window.web3.providers.HttpProvider())
+
+    return this.contract.deployed()
   }
 }
