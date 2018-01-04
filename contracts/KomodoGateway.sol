@@ -50,7 +50,7 @@ contract KomodoGateway {
         }
     }
 
-    function joinPot (uint amount) public payable edible(msg.value) {
+    function joinPot () public payable {
         // log all join interactions, allow client to parse available transaction blocks
         // for room metrics
         JoinPot(currentPot, msg.sender, msg.value);
@@ -65,7 +65,7 @@ contract KomodoGateway {
     }
 
     function fetchCurrentPotId () public view returns (uint) {
-        return currentPot;
+        return currentPot - 1;
     }
 
     function setTokenAddress (address _t) public hasGodAccess {
