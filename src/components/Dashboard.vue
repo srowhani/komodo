@@ -50,38 +50,36 @@
       const web3 = window.web3
       this._contract = await Komodo.init()
       console.log(this._contract)
+
+      const event = this._contract.JoinPot({}, {
+        fromBlock: 0,
+        toBlock: 'latest'
+      }, function (error, result) {
+        if (!error) {
+          console.log(result);
+        }
+      })
+
       this.$forceUpdate()
 
-      const accounts = await web3.eth.getAccounts()
+      const accounts = web3.eth.accounts || []
       this._currentAccount = accounts[0]
-      const balance = await web3.eth.getBalance(this._currentAccount, () => {})
-      this.balance = web3.utils.fromWei(balance.toString())
+      web3.eth.getBalance(this._currentAccount, (err, balance) => {
+        this.balance = web3.fromWei(balance.toString())
+      })
 
       this._currentPot = {}
       this._currentPot._id = (await this._contract.fetchCurrentPotId.call()).toString()
+
       this.$forceUpdate()
 
-      const _joinPotFilter = this._contract.JoinPot(
-        {
-          _potId: this._currentPot._id - 1
-        }, {
-          fromBlock: 'latest',
-          toBlock: 'latest'
-      })
-      _joinPotFilter.watch((err, res) => {
-        if (err) {
-          console.error(err)
-          _joinPotFilter.stopWatching()
-          return
-        }
-        console.log(res)
-      })
     },
     methods: {
       async _joinCurrentPot () {
-        const bet = web3.utils.toWei(`${this._currentBetAmount}`)
+        const bet = web3.toWei(`${this._currentBetAmount}`)
         const account = this._currentAccount
         const contract_address = this._contract.address
+        console.log(this._currentPot._id)
 
         const result = await this._contract.joinPot({
           from: account,
@@ -89,8 +87,6 @@
           gas: 250000,
           value: bet
         })
-
-        console.log(result);
       }
     }
   }

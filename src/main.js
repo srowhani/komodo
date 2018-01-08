@@ -3,14 +3,14 @@
 import Vue from 'vue'
 import App from './App'
 import Error from './Error'
-import Web3 from 'web3'
+// import Web3 from 'web3'
 import router from './router'
 
 window.addEventListener('load', () => {
-  if (window.web3) {
-    window.web3 = new Web3()
-    window.web3.setProvider(window.web3.givenProvider)
-  }
+  // if (window.web3) {
+  //   // window.web3 = new Web3()
+  //   window.web3.setProvider(window.web3.givenProvider)
+  // }
   /* eslint-disable no-new */
   new Vue({
     el: '#app',
@@ -25,7 +25,7 @@ window.addEventListener('load', () => {
       this._web3Injected = !!window.web3
       this._shouldRender = false
       if (this._web3Injected) {
-        this.accounts = await window.web3.eth.getAccounts()
+        this.accounts = window.web3.eth.accounts || []
         console.log(this.accounts)
         this._shouldRender = this.accounts.length > 0
         if (this._shouldRender) {

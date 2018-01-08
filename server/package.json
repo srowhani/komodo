@@ -1,0 +1,24 @@
+{
+  "dependencies": {
+    "body-parser": "^1.17.1",
+    "chordprojs": "^0.1.1",
+    "cookie-parser": "^1.4.3",
+    "cors": "^2.8.4",
+    "express": "^4.16.2",
+    "jsonwebtoken": "^8.1.0",
+    "mongodb": "^2.2.25",
+    "morgan": "^1.8.1",
+    "path": "^0.12.7",
+    "pug": "^2.0.0-beta11",
+    "request": "^2.83.0",
+    "socket.io": "^1.7.3",
+    "spotify-web-api-node": "^2.3.6"
+  },
+  "scripts": {
+    "start": "node app.js",
+    "generate-key": "openssl req -newkey rsa:2048 -new -nodes -x509 -days 3650 -keyout key.pem -out cert.pem"
+  },
+  "devDependencies": {
+    "chordsheetjs": "^1.5.3"
+  }
+}

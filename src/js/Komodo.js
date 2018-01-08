@@ -6,7 +6,7 @@ export default {
   instance: null,
   init () {
     this.contract = contract(KomodoContract)
-    this.contract.setProvider(window.web3.givenProvider)
+    this.contract.setProvider(window.web3.currentProvider)
     return this.contract.deployed()
   }
 }

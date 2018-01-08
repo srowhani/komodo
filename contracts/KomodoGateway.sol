@@ -8,7 +8,7 @@ contract KomodoGateway {
     using SafeMath for *;
 
     event CreatePot(uint _id);
-    event JoinPot(uint _potId, address _address, uint stakeSize);
+    event JoinPot(uint _potId, uint _potSize, address _address, uint stakeSize);
     event FinalizePot(uint _id, uint _amount, uint _numParticipants);
     event TokenAddressChanged(address _old, address _new);
     event IssueRefund(address _user, uint _amount);
@@ -35,6 +35,7 @@ contract KomodoGateway {
 
     function KomodoGateway() public {
         _god = msg.sender;
+
         _minBetSize = 10; // 0.1 eth
         _pot();
     }
@@ -46,22 +47,27 @@ contract KomodoGateway {
 
     modifier edible (uint _amount) {
         if (_amount > _minBetSize) {
-          _;
+            _;
         }
+    }
+
+    function createPot () public payable {
+        Pot memory p = _pot();
+
     }
 
     function joinPot () public payable {
         // log all join interactions, allow client to parse available transaction blocks
         // for room metrics
-        JoinPot(currentPot, msg.sender, msg.value);
         Pot p = _pots[currentPot];
 
         if (p._stakes[msg.sender] == 0) {
-          p._numParticipants += 1;
+            p._numParticipants += 1;
         }
 
         p._stakes[msg.sender] = msg.value;
         p._amount += msg.value;
+        JoinPot(currentPot, p._amount, msg.sender, msg.value);
     }
 
     function fetchCurrentPotId () public view returns (uint) {
@@ -73,11 +79,16 @@ contract KomodoGateway {
         _tokenAddress = _t;
     }
 
+    function logEvent () public {
+        CoolEvent(1);
+    }
+
     function _pot() private {
         Pot memory p;
         p._id = currentPot;
         p._numParticipants = 0;
         p._amount = 0;
         _pots[currentPot++] = p;
+        return p;
     }
 }
