@@ -19,6 +19,7 @@
   },
   "dependencies": {
     "bignumber.js": "^5.0.0",
+    "eth-random": "0.0.4-alpha.1",
     "ethereum-blockies": "git+https://github.com/MyEtherWallet/blockies.git",
     "truffle-contract": "^3.0.0",
     "vue": "^2.4.2",

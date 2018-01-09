@@ -21,6 +21,7 @@
     key: fs.readFileSync('key.pem'),
     cert: fs.readFileSync('cert.pem')
   }
+
   const server = http.createServer(app);
   const httpsServer = https.createServer(config, app);
 

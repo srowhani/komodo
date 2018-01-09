@@ -51,7 +51,13 @@
       this._contract = await Komodo.init()
       console.log(this._contract)
 
-      const event = this._contract.JoinPot({}, {
+      this._currentPot = {}
+      this._currentPot._id = (await this._contract.fetchCurrentPotId.call()).toString()
+
+      this.$forceUpdate()
+      console.log(this._currentPot)
+
+      const event = this._contract.JoinPot({_potId: Number(this._currentPot._id) + 1}, {
         fromBlock: 0,
         toBlock: 'latest'
       }, function (error, result) {
@@ -67,12 +73,6 @@
       web3.eth.getBalance(this._currentAccount, (err, balance) => {
         this.balance = web3.fromWei(balance.toString())
       })
-
-      this._currentPot = {}
-      this._currentPot._id = (await this._contract.fetchCurrentPotId.call()).toString()
-
-      this.$forceUpdate()
-
     },
     methods: {
       async _joinCurrentPot () {
