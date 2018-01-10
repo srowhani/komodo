@@ -1,28 +1,45 @@
 <template>
   <section id='dashboard'>
     <div class='content'>
-      <div class='balance'>
-        <h3>Balance</h3>
-        {{balance}} ETH
-      </div>
-      <div v-if="_contract" class='contract'>
-        <h3>KomodoGateway Contract Information</h3>
-        {{_contract.address}}
-      </div>
       <div v-if="_currentPot" class='pot'>
-        <h3>Current Pot</h3>
-        {{_currentPot._id}}
-        <md-field>
-          <label>Amount</label>
-          <md-input v-model="_currentBetAmount" type="number"></md-input>
-          {{_currentBetAmount}}
-        </md-field>
+        <div class='participants'>
+          <h3>Participants</h3>
 
-        <md-button
-          class="md-raised"
-          :md-ripple="false"
-          @click="_joinCurrentPot">Join
-        </md-button>
+          <div class='participant' v-for="(participant, address) in _currentPot.participants">
+            <img class='md-avatar' :src='participant.profile_img'/>
+            <div class='title'>
+              <div class='primary'>
+                {{address}}
+              </div>
+              <div class='secondary'>
+                {{participant.amount}} ETH
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class='form'>
+          <div class='balance'>
+            <h3>Balance</h3>
+            {{balance}} ETH
+          </div>
+          <div v-if="_contract" class='contract'>
+            <h3>KomodoGateway Contract Information</h3>
+            {{_contract.address}}
+          </div>
+          <h3>Current Pot</h3>
+          {{_currentPot._id}}
+          <md-field>
+            <label>Amount</label>
+            <md-input v-model="_currentBetAmount" type="number"></md-input>
+            {{_currentBetAmount}}
+          </md-field>
+
+          <md-button
+            class="md-raised"
+            :md-ripple="false"
+            @click="_joinCurrentPot">Join
+          </md-button>
+        </div>
       </div>
     </div>
   </section>
@@ -30,6 +47,8 @@
 
 <script type='text/x-template'>
   import Komodo from '@/js/Komodo'
+  import { toDataUrl } from 'ethereum-blockies'
+
   export default {
     name: 'dashboard',
     data () {
@@ -51,20 +70,50 @@
       this._contract = await Komodo.init()
       console.log(this._contract)
 
-      this._currentPot = {}
+      this._currentPot = {
+        participants: {}
+      }
+
       this._currentPot._id = (await this._contract.fetchCurrentPotId.call()).toString()
 
       this.$forceUpdate()
-      console.log(this._currentPot)
 
-      const event = this._contract.JoinPot({_potId: Number(this._currentPot._id) + 1}, {
-        fromBlock: 0,
-        toBlock: 'latest'
-      }, function (error, result) {
-        if (!error) {
-          console.log(result);
-        }
-      })
+      this._joinPotEventLastBlock = 0
+      this._joinPotEventPollingCycle = 1500
+      this._pollJoinEventInterval = setInterval(() => {
+        const _joinPotEvent = this._contract.JoinPot({
+          _potId: 1
+        }, {
+          fromBlock: 1 + this._joinPotEventLastBlock,
+          toBlock: 'latest'
+        })
+
+        _joinPotEvent.watch((error, result) => {
+          if (!error) {
+            console.log(result)
+            this._joinPotEventLastBlock = result.blockNumber
+
+            let {
+              _address,
+              _amount
+            } = result.args
+
+            _amount = Number(web3.fromWei(_amount.toString()))
+
+            if (!this._currentPot.participants[_address]) {
+              this._currentPot.participants[_address] = {
+                profile_img: toDataUrl(_address),
+                amount: _amount
+              }
+            } else {
+              this._currentPot.participants[_address].amount += _amount
+            }
+            console.log(this._currentPot)
+            this.$forceUpdate()
+          }
+          _joinPotEvent.stopWatching()
+        })
+      }, this._joinPotEventPollingCycle)
 
       this.$forceUpdate()
 
@@ -87,35 +136,47 @@
           gas: 250000,
           value: bet
         })
+        console.log(result)
       }
     }
   }
 </script>
 
 <style lang="scss" scoped>
-
-  #chat {
+  .pot {
     display: flex;
-    flex-direction: column;
-    height: 100%;
-    .content {
+    flex-direction: row;
+    flex: 1;
+    .participants {
       display: flex;
       flex-direction: column;
-      flex: 5;
-    }
-    .bottom-bar {
-      display: flex;
-      flex-direction: row;
-      flex: 1;
-
-      .item {
-        &-2 {
-          flex: 2;
-        }
-        &-7 {
-          flex: 7;
+      flex: 2;
+      .participant {
+        height: 45px;
+        padding: 2px;
+        display: flex;
+        flex-direction: row;
+        .title {
+          display: flex;
+          flex-direction: column;
+          .primary {
+            font-weight: 500;
+            text-overflow: ellipsis;
+            padding-left: 10px;
+          }
+          .secondary {
+            font-size: 12px;
+            padding-left: 10px;
+            text-align: left;
+          }
         }
       }
+    }
+    .form {
+      display: flex;
+      flex-direction: column;
+      flex: 3;
+      padding: 10px;
     }
   }
 

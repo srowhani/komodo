@@ -2,16 +2,18 @@ pragma solidity 0.4.18;
 
 import "./KomodoToken.sol";
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
+import "oraclize/usingOraclize.sol";
 
-import "github.com/oraclize/ethereum-api/oraclizeAPI.sol";
 
 contract KomodoGateway is usingOraclize {
+    using SafeMath for *;
+
     event CreatePot(uint _id);
-    event JoinPot(uint indexed _potId, uint _potSize, address _address, uint stakeSize);
+    event JoinPot(uint indexed _potId, uint _amount, address _address);
     event FinalizePot(uint _id, uint _amount, uint _numParticipants);
     event TokenAddressChanged(address _old, address _new);
     event IssueRefund(address _user, uint _amount);
-    event PotError(uint indexed _potId, uint indexed _queryId);
+    event PotError(bytes32 _queryId, bytes _proof);
 
     enum PotState {
         OPEN,
@@ -24,6 +26,7 @@ contract KomodoGateway is usingOraclize {
         uint _numParticipants;
         uint _amount;
         mapping (address => uint) _stakes;
+        mapping (uint => address) _participants;
     }
 
     mapping (uint => Pot) private _pots;
@@ -33,10 +36,10 @@ contract KomodoGateway is usingOraclize {
     uint private currentPot;
     uint256 private _minBetSize;
 
-    function KomodoGateway(address _randomContract) public {
+    function KomodoGateway() public {
         _god = msg.sender;
-        random = _randomContract
         _minBetSize = 10; // 0.1 eth
+        currentPot = 1;
         _pot();
     }
 
@@ -52,17 +55,16 @@ contract KomodoGateway is usingOraclize {
     }
 
     function joinPot () public payable {
-        // log all join interactions, allow client to parse available transaction blocks
-        // for room metrics
+        JoinPot(currentPot, msg.value, msg.sender);
+
         Pot p = _pots[currentPot];
 
         if (p._stakes[msg.sender] == 0) {
-            p._numParticipants += 1;
+            p._participants[p._numParticipants++] = msg.sender;
         }
 
         p._stakes[msg.sender] = msg.value;
         p._amount += msg.value;
-        JoinPot(currentPot, p._amount, msg.sender, msg.value);
     }
 
     function fetchCurrentPotId () public view returns (uint) {
@@ -78,12 +80,12 @@ contract KomodoGateway is usingOraclize {
         if (msg.sender != oraclize_cbAddress())
             revert();
 
-        if (oraclize_randomDS_proofVerify__returnCode(_queryId, _result, _proof) != 0) {
-            PotError(currentPot, _queryId);
-        } else {
+        if (_result) {
             uint maxRange = 2 ** (8 * _pots[currentPot]._amount);
             uint _rand = uint(keccak256(_result)) % maxRange;
-            _finalize_settle(_rand);
+            _finalizeSettle(_rand);
+        } else {
+            PotError(_queryId, _proof);
         }
 
 
@@ -99,7 +101,7 @@ contract KomodoGateway is usingOraclize {
     }
 
     function _initSettle() private {
-        Pot p = _pots[currentPot]
+        Pot p = _pots[currentPot];
 
         uint _potSize = p._amount;
         uint _delay = 0;
@@ -112,10 +114,10 @@ contract KomodoGateway is usingOraclize {
         Pot p = _pots[currentPot];
         uint cursor = 0;
         for (uint i = 0; i < p._numParticipants; i++) {
-            if (_rand <= cursor + p._stakes[p._addr[i]]) {
+            if (_rand <= cursor + p._stakes[p._participants[i]]) {
               // Winner is p._addr[i]
             }
-            cursor += p._stakes[p._addr[i]];
+            cursor += p._stakes[p._participants[i]];
         }
     }
 

@@ -14,6 +14,7 @@
     "e2e": "node test/e2e/runner.js",
     "test/truffle": "truffle test test/truffle/*",
     "test/dapp": "npm run unit && npm run e2e",
+    "testrpc": "testrpc",
     "test": "npm run test/truffle && npm run test/dapp",
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
