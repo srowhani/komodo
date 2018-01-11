@@ -14,6 +14,7 @@ contract KomodoGateway is usingOraclize {
     event TokenAddressChanged(address _old, address _new);
     event IssueRefund(address _user, uint _amount);
     event PotError(bytes32 _queryId, bytes _proof);
+    event PotWinner(address _addr, uint _stake);
 
     enum PotState {
         OPEN,
@@ -80,15 +81,23 @@ contract KomodoGateway is usingOraclize {
         if (msg.sender != oraclize_cbAddress())
             revert();
 
-        if (_result) {
+        if (oraclize_randomDS_proofVerify__returnCode(_queryId, _result, _proof) == 0) {
             uint maxRange = 2 ** (8 * _pots[currentPot]._amount);
             uint _rand = uint(keccak256(_result)) % maxRange;
             _finalizeSettle(_rand);
         } else {
             PotError(_queryId, _proof);
         }
+    }
 
+    function _initSettle() public {
+        Pot p = _pots[currentPot];
 
+        uint _potSize = p._amount;
+        uint _delay = 0;
+        uint _callbackGas = 120000;
+
+        oraclize_newRandomDSQuery(_delay, _potSize, _callbackGas);
     }
 
     function _pot() private {
@@ -100,22 +109,12 @@ contract KomodoGateway is usingOraclize {
         CreatePot(currentPot);
     }
 
-    function _initSettle() private {
-        Pot p = _pots[currentPot];
-
-        uint _potSize = p._amount;
-        uint _delay = 0;
-        uint _callbackGas = 200000;
-
-        oraclize_newRandomDSQuery(_delay, _potSize, _callbackGas);
-    }
-
     function _finalizeSettle (uint _rand) private {
         Pot p = _pots[currentPot];
         uint cursor = 0;
         for (uint i = 0; i < p._numParticipants; i++) {
             if (_rand <= cursor + p._stakes[p._participants[i]]) {
-              // Winner is p._addr[i]
+                PotWinner(p._participants[i], p._stakes[p._participants[i]]);
             }
             cursor += p._stakes[p._participants[i]];
         }
