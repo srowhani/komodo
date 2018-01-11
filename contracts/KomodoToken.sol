@@ -5,8 +5,8 @@ contract KomodoToken is StandardToken {
   event Refund(address _addr);
 
   function () public {
-      Refund(msg.sender);
-      revert();
+        Refund(msg.sender);
+        revert();
   }
 
   string public name;

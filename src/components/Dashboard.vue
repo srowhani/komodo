@@ -39,6 +39,11 @@
             :md-ripple="false"
             @click="_joinCurrentPot">Join
           </md-button>
+          <md-button
+            class="md-raised"
+            :md-ripple="false"
+            @click="_settlePot">Settle
+          </md-button>
         </div>
       </div>
     </div>
@@ -80,7 +85,20 @@
 
       this._joinPotEventLastBlock = 0
       this._joinPotEventPollingCycle = 1500
+
+
+
       this._pollJoinEventInterval = setInterval(() => {
+
+        const _initSettleEvent = this._contract.CallbackFired({}, {
+          fromBlock: 0,
+          toBlock: 'latest'
+        })
+
+        _initSettleEvent.watch((error, result) => {
+          console.log(error, result)
+        })
+
         const _joinPotEvent = this._contract.JoinPot({
           _potId: 1
         }, {
@@ -135,6 +153,17 @@
           to: contract_address,
           gas: 250000,
           value: bet
+        })
+        console.log(result)
+      },
+      async _settlePot () {
+        const account = this._currentAccount
+        const contract_address = this._contract.address
+
+        const result = await this._contract._initSettle({
+          from: account,
+          to: contract_address,
+          gas: 250000
         })
         console.log(result)
       }

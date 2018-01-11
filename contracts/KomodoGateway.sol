@@ -15,6 +15,7 @@ contract KomodoGateway is usingOraclize {
     event IssueRefund(address _user, uint _amount);
     event PotError(bytes32 _queryId, bytes _proof);
     event PotWinner(address _addr, uint _stake);
+    event CallbackFired(bytes32 _queryId, string _result, bytes _proof);
 
     enum PotState {
         OPEN,
@@ -38,6 +39,9 @@ contract KomodoGateway is usingOraclize {
     uint256 private _minBetSize;
 
     function KomodoGateway() public {
+        // Result of running eth-bridge (necessary for test-net to be able to use
+        // oraclize for offchain requests!)
+        OAR = OraclizeAddrResolverI(0x6f485c8bf6fc43ea212e93bbf8ce046c7f1cb475);
         _god = msg.sender;
         _minBetSize = 10; // 0.1 eth
         currentPot = 1;
@@ -66,6 +70,10 @@ contract KomodoGateway is usingOraclize {
 
         p._stakes[msg.sender] = msg.value;
         p._amount += msg.value;
+
+        if (p._amount > 5000000000000000000) {
+            _initSettle();
+        }
     }
 
     function fetchCurrentPotId () public view returns (uint) {
@@ -81,6 +89,7 @@ contract KomodoGateway is usingOraclize {
         if (msg.sender != oraclize_cbAddress())
             revert();
 
+        CallbackFired(_queryId, _result, _proof);
         if (oraclize_randomDS_proofVerify__returnCode(_queryId, _result, _proof) == 0) {
             uint maxRange = 2 ** (8 * _pots[currentPot]._amount);
             uint _rand = uint(keccak256(_result)) % maxRange;
@@ -90,14 +99,13 @@ contract KomodoGateway is usingOraclize {
         }
     }
 
-    function _initSettle() public {
-        Pot p = _pots[currentPot];
+    function _initSettle() public payable {
+        /* Pot p = _pots[currentPot];
 
         uint _potSize = p._amount;
         uint _delay = 0;
-        uint _callbackGas = 120000;
-
-        oraclize_newRandomDSQuery(_delay, _potSize, _callbackGas);
+        uint _callbackGas = 120000; */
+        oraclize_query("WolframAlpha", "random number between 1 and ");
     }
 
     function _pot() private {

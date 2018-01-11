@@ -7,14 +7,14 @@
   "scripts": {
     "dev": "node scripts/dev-server.js",
     "start": "npm run dev",
-    "compile": "rm build/contracts/* && truffle compile",
+    "compile": "rm -f build/contracts/* && truffle compile",
     "migrate": "truffle networks --clean && truffle migrate",
     "build": "node scripts/build.js",
     "unit": "cross-env BABEL_ENV=test karma start test/unit/karma.conf.js --single-run",
     "e2e": "node test/e2e/runner.js",
     "test/truffle": "truffle test test/truffle/*",
     "test/dapp": "npm run unit && npm run e2e",
-    "testrpc": "testrpc",
+    "testrpc": "testrpc --mnemonic \"test_network\" --accounts 50",
     "test": "npm run test/truffle && npm run test/dapp",
     "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
   },
