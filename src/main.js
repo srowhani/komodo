@@ -7,10 +7,6 @@ import Error from './Error'
 import router from './router'
 
 window.addEventListener('load', () => {
-  // if (window.web3) {
-  //   // window.web3 = new Web3()
-  //   window.web3.setProvider(window.web3.givenProvider)
-  // }
   /* eslint-disable no-new */
   new Vue({
     el: '#app',
@@ -26,8 +22,9 @@ window.addEventListener('load', () => {
       this._shouldRender = false
       if (this._web3Injected) {
         this.accounts = window.web3.eth.accounts || []
-        console.log(this.accounts)
-        this._shouldRender = this.accounts.length > 0
+
+        this._shouldRender = !!this.accounts.length
+
         if (this._shouldRender) {
           this.account = this.accounts[0]
           this.$forceUpdate()

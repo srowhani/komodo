@@ -3,10 +3,12 @@ pragma solidity 0.4.18;
 import "./KomodoToken.sol";
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
 import "oraclize/usingOraclize.sol";
+import "./strings.sol";
 
 
 contract KomodoGateway is usingOraclize {
     using SafeMath for *;
+    using strings for *;
 
     event CreatePot(uint _id);
     event JoinPot(uint indexed _potId, uint _amount, address _address);
@@ -15,7 +17,7 @@ contract KomodoGateway is usingOraclize {
     event IssueRefund(address _user, uint _amount);
     event PotError(bytes32 _queryId, bytes _proof);
     event PotWinner(address _addr, uint _stake);
-    event CallbackFired(bytes32 _queryId, string _result, bytes _proof);
+    event CallbackFired(string _result);
 
     enum PotState {
         OPEN,
@@ -37,13 +39,14 @@ contract KomodoGateway is usingOraclize {
     address private _tokenAddress;
     uint private currentPot;
     uint256 private _minBetSize;
+    uint256 private _weiPerEth = 1000000000000000000;
 
     function KomodoGateway() public {
         // Result of running eth-bridge (necessary for test-net to be able to use
         // oraclize for offchain requests!)
-        OAR = OraclizeAddrResolverI(0x6f485c8bf6fc43ea212e93bbf8ce046c7f1cb475);
+        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
         _god = msg.sender;
-        _minBetSize = 10; // 0.1 eth
+        _minBetSize = 500000000000000000; // 0.1 eth
         currentPot = 1;
         _pot();
     }
@@ -59,7 +62,7 @@ contract KomodoGateway is usingOraclize {
         }
     }
 
-    function joinPot () public payable {
+    function joinPot () public payable edible(msg.value) {
         JoinPot(currentPot, msg.value, msg.sender);
 
         Pot p = _pots[currentPot];
@@ -86,10 +89,8 @@ contract KomodoGateway is usingOraclize {
     }
 
     function __callback(bytes32 _queryId, string _result, bytes _proof) {
-        if (msg.sender != oraclize_cbAddress())
-            revert();
+        CallbackFired(_result);
 
-        CallbackFired(_queryId, _result, _proof);
         if (oraclize_randomDS_proofVerify__returnCode(_queryId, _result, _proof) == 0) {
             uint maxRange = 2 ** (8 * _pots[currentPot]._amount);
             uint _rand = uint(keccak256(_result)) % maxRange;
@@ -105,7 +106,7 @@ contract KomodoGateway is usingOraclize {
         uint _potSize = p._amount;
         uint _delay = 0;
         uint _callbackGas = 120000; */
-        oraclize_query("WolframAlpha", "random number between 1 and ");
+        oraclize_query("WolframAlpha", "random number between 1 and 100");
     }
 
     function _pot() private {

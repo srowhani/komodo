@@ -87,9 +87,8 @@
       this._joinPotEventPollingCycle = 1500
 
 
-
       this._pollJoinEventInterval = setInterval(() => {
-
+        console.log('woo')
         const _initSettleEvent = this._contract.CallbackFired({}, {
           fromBlock: 0,
           toBlock: 'latest'
@@ -97,6 +96,8 @@
 
         _initSettleEvent.watch((error, result) => {
           console.log(error, result)
+
+          _initSettleEvent.stopWatching()
         })
 
         const _joinPotEvent = this._contract.JoinPot({
@@ -108,7 +109,6 @@
 
         _joinPotEvent.watch((error, result) => {
           if (!error) {
-            console.log(result)
             this._joinPotEventLastBlock = result.blockNumber
 
             let {

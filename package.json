@@ -8,7 +8,8 @@
     "dev": "node scripts/dev-server.js",
     "start": "npm run dev",
     "compile": "rm -f build/contracts/* && truffle compile",
-    "migrate": "truffle networks --clean && truffle migrate",
+    "migrate": "truffle migrate",
+    "clean": "truffle networks --clean",
     "build": "node scripts/build.js",
     "unit": "cross-env BABEL_ENV=test karma start test/unit/karma.conf.js --single-run",
     "e2e": "node test/e2e/runner.js",
@@ -16,7 +17,8 @@
     "test/dapp": "npm run unit && npm run e2e",
     "testrpc": "testrpc --mnemonic \"test_network\" --accounts 50",
     "test": "npm run test/truffle && npm run test/dapp",
-    "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs"
+    "lint": "eslint --ext .js,.vue src test/unit/specs test/e2e/specs",
+    "bridge": "cd ethereum-bridge && node bridge -H localhost:8545 -a 49 && cd .."
   },
   "dependencies": {
     "bignumber.js": "^5.0.0",
