@@ -1,4 +1,4 @@
-# Komodo
+# Komodo - web3
 
 ## Instructions
 

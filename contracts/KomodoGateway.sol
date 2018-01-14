@@ -37,6 +37,7 @@ contract KomodoGateway is usingOraclize {
 
     address private _god;
     address private _tokenAddress;
+    address private _oraclizeAddress;
     uint private currentPot;
     uint256 private _minBetSize;
     uint256 private _weiPerEth = 1000000000000000000;
@@ -44,20 +45,27 @@ contract KomodoGateway is usingOraclize {
     function KomodoGateway() public {
         // Result of running eth-bridge (necessary for test-net to be able to use
         // oraclize for offchain requests!)
-        OAR = OraclizeAddrResolverI(0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475);
+        _oraclizeAddress = 0x6f485C8BF6fc43eA212E93BBF8ce046C7f1cb475;
+        OAR = OraclizeAddrResolverI(_oraclizeAddress);
         _god = msg.sender;
         _minBetSize = 500000000000000000; // 0.1 eth
         currentPot = 1;
         _pot();
     }
 
-    modifier hasGodAccess {
+    modifier hasGodAccess() {
         require(msg.sender == _god);
         _;
     }
 
     modifier edible (uint _amount) {
         if (_amount > _minBetSize) {
+            _;
+        }
+    }
+
+    modifier isOraclize() {
+        if (msg.sender == _oraclizeAddress) {
             _;
         }
     }
@@ -88,25 +96,64 @@ contract KomodoGateway is usingOraclize {
         _tokenAddress = _t;
     }
 
-    function __callback(bytes32 _queryId, string _result, bytes _proof) {
+    function __callback(bytes32 _queryId, string _result, bytes _proof) public isOraclize {
         CallbackFired(_result);
-
-        if (oraclize_randomDS_proofVerify__returnCode(_queryId, _result, _proof) == 0) {
-            uint maxRange = 2 ** (8 * _pots[currentPot]._amount);
-            uint _rand = uint(keccak256(_result)) % maxRange;
-            _finalizeSettle(_rand);
-        } else {
-            PotError(_queryId, _proof);
-        }
+        _finalizeSettle(stringToUint(_result));
     }
 
     function _initSettle() public payable {
-        /* Pot p = _pots[currentPot];
+        Pot p = _pots[currentPot];
+        oraclize_query("WolframAlpha", appendUintToString("random number between 0 and ", p._amount));
+    }
 
-        uint _potSize = p._amount;
-        uint _delay = 0;
-        uint _callbackGas = 120000; */
-        oraclize_query("WolframAlpha", "random number between 1 and 100");
+    function stringToUint(string s) constant returns (uint) {
+        bytes memory b = bytes(s);
+        uint result = 0;
+        for (uint i = 0; i < b.length; i++) { // c = b[i] was not needed
+            if (b[i] >= 48 && b[i] <= 57) {
+                result = result * 10 + (uint(b[i]) - 48); // bytes and int are not compatible with the operator -.
+            }
+        }
+        return result; // this was missing
+    }
+
+    function appendUintToString(string inStr, uint v) constant returns (string str) {
+        uint maxlength = 100;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (v != 0) {
+            uint remainder = v % 10;
+            v = v / 10;
+            reversed[i++] = byte(48 + remainder);
+        }
+        bytes memory inStrb = bytes(inStr);
+        bytes memory s = new bytes(inStrb.length + i + 1);
+        uint j;
+        for (j = 0; j < inStrb.length; j++) {
+            s[j] = inStrb[j];
+        }
+        for (j = 0; j <= i; j++) {
+            s[j + inStrb.length] = reversed[i - j];
+        }
+        str = string(s);
+        return str;
+    }
+
+    function uintToString(uint v) constant returns (string) {
+        uint maxlength = 100;
+        bytes memory reversed = new bytes(maxlength);
+        uint i = 0;
+        while (v != 0) {
+            uint remainder = v % 10;
+            v = v / 10;
+            reversed[i++] = byte(48 + remainder);
+        }
+        bytes memory s = new bytes(i); // i + 1 is inefficient
+        for (uint j = 0; j < i; j++) {
+            s[j] = reversed[i - j - 1]; // to avoid the off-by-one error
+        }
+        string memory str = string(s);  // memory isn't implicitly convertible to storage
+        return str; // this was missing
     }
 
     function _pot() private {
@@ -124,6 +171,7 @@ contract KomodoGateway is usingOraclize {
         for (uint i = 0; i < p._numParticipants; i++) {
             if (_rand <= cursor + p._stakes[p._participants[i]]) {
                 PotWinner(p._participants[i], p._stakes[p._participants[i]]);
+                return;
             }
             cursor += p._stakes[p._participants[i]];
         }
