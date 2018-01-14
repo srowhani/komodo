@@ -91,6 +91,10 @@ contract KomodoGateway is usingOraclize {
         return currentPot;
     }
 
+    function fetchCurrentPotAmount () public view returns (uint) {
+        return _pots[currentPot]._amount;
+    }
+
     function setTokenAddress (address _t) public hasGodAccess {
         TokenAddressChanged(_tokenAddress, _t);
         _tokenAddress = _t;
