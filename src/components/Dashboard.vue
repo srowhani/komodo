@@ -100,7 +100,7 @@
         })
 
         const _joinPotEvent = this._contract.JoinPot({
-          _potId: 1
+          _potId: this._currentPot._id
         }, {
           fromBlock: 1 + this._joinPotEventLastBlock,
           toBlock: 'latest'
