@@ -97,7 +97,7 @@
         _initSettleEvent.watch((error, result) => {
           console.log(error, result)
 
-          _initSettleEvent.stopWatching()
+          // _initSettleEvent.stopWatching()
         })
 
         const _joinPotEvent = this._contract.JoinPot({

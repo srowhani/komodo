@@ -1,4 +1,4 @@
-pragma solidity 0.4.18;
+pragma solidity ^0.4.18;
 
 import "./KomodoToken.sol";
 import "zeppelin-solidity/contracts/math/SafeMath.sol";
@@ -18,7 +18,7 @@ contract KomodoGateway is usingOraclize {
     event PotError(bytes32 _queryId, bytes _proof);
     event PotWinner(address _addr, uint _stake);
     event CallbackFired(string _result);
-
+    event InitSettle(uint _amount);
     enum PotState {
         OPEN,
         CLOSED,
@@ -83,7 +83,7 @@ contract KomodoGateway is usingOraclize {
         p._amount += msg.value;
 
         if (p._amount > 5000000000000000000) {
-            _initSettle();
+            _initSettle(p._amount);
         }
     }
 
@@ -102,12 +102,12 @@ contract KomodoGateway is usingOraclize {
 
     function __callback(bytes32 _queryId, string _result, bytes _proof) public isOraclize {
         CallbackFired(_result);
-        _finalizeSettle(stringToUint(_result));
+        /* _finalizeSettle(stringToUint(_result)); */
     }
 
-    function _initSettle() public payable {
-        Pot p = _pots[currentPot];
-        oraclize_query("WolframAlpha", appendUintToString("random number between 0 and ", p._amount));
+    function _initSettle(uint _potAmount) private {
+        InitSettle(_potAmount);
+        oraclize_query("WolframAlpha", "random number between 0 and ".toSlice().concat(uintToString(_potAmount).toSlice()));
     }
 
     function stringToUint(string s) constant returns (uint) {
@@ -121,7 +121,7 @@ contract KomodoGateway is usingOraclize {
         return result; // this was missing
     }
 
-    function appendUintToString(string inStr, uint v) constant returns (string str) {
+    function appendUintToString(string inStr, uint v) pure public returns (string str) {
         uint maxlength = 100;
         bytes memory reversed = new bytes(maxlength);
         uint i = 0;
@@ -140,7 +140,6 @@ contract KomodoGateway is usingOraclize {
             s[j + inStrb.length] = reversed[i - j];
         }
         str = string(s);
-        return str;
     }
 
     function uintToString(uint v) constant returns (string) {
