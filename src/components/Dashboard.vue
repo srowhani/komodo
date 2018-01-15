@@ -88,8 +88,7 @@
 
 
       this._pollJoinEventInterval = setInterval(() => {
-        console.log('woo')
-        const _initSettleEvent = this._contract.CallbackFired({}, {
+        const _initSettleEvent = this._contract.SentMoney({}, {
           fromBlock: 0,
           toBlock: 'latest'
         })
@@ -97,7 +96,7 @@
         _initSettleEvent.watch((error, result) => {
           console.log(error, result)
 
-          // _initSettleEvent.stopWatching()
+          _initSettleEvent.stopWatching()
         })
 
         const _joinPotEvent = this._contract.JoinPot({

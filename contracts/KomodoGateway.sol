@@ -17,8 +17,10 @@ contract KomodoGateway is usingOraclize {
     event IssueRefund(address _user, uint _amount);
     event PotError(bytes32 _queryId, bytes _proof);
     event PotWinner(address _addr, uint _stake);
-    event CallbackFired(string _result);
+    event CallbackFired(uint _result);
     event InitSettle(uint _amount);
+    event SentMoney(uint _amount);
+
     enum PotState {
         OPEN,
         CLOSED,
@@ -50,6 +52,7 @@ contract KomodoGateway is usingOraclize {
         _god = msg.sender;
         _minBetSize = 500000000000000000; // 0.1 eth
         currentPot = 1;
+        oraclize_setProof(proofType_TLSNotary | proofStorage_IPFS);
         _pot();
     }
 
@@ -79,7 +82,7 @@ contract KomodoGateway is usingOraclize {
             p._participants[p._numParticipants++] = msg.sender;
         }
 
-        p._stakes[msg.sender] = msg.value;
+        p._stakes[msg.sender] += msg.value;
         p._amount += msg.value;
 
         if (p._amount > 5000000000000000000) {
@@ -100,17 +103,18 @@ contract KomodoGateway is usingOraclize {
         _tokenAddress = _t;
     }
 
-    function __callback(bytes32 _queryId, string _result, bytes _proof) public isOraclize {
-        CallbackFired(_result);
-        /* _finalizeSettle(stringToUint(_result)); */
+    function __callback(bytes32 _queryId, string _result, bytes _proof) public {
+        var _parsedResponse = stringToUint(_result);
+        _finalizeSettle(_parsedResponse);
     }
 
     function _initSettle(uint _potAmount) private {
         InitSettle(_potAmount);
-        oraclize_query("WolframAlpha", "random number between 0 and ".toSlice().concat(uintToString(_potAmount).toSlice()));
+        var _query = "random number between 0 and ".toSlice().concat(uintToString(_potAmount).toSlice());
+        oraclize_query("WolframAlpha", _query);
     }
 
-    function stringToUint(string s) constant returns (uint) {
+    function stringToUint(string s) private constant returns (uint) {
         bytes memory b = bytes(s);
         uint result = 0;
         for (uint i = 0; i < b.length; i++) { // c = b[i] was not needed
@@ -121,28 +125,7 @@ contract KomodoGateway is usingOraclize {
         return result; // this was missing
     }
 
-    function appendUintToString(string inStr, uint v) pure public returns (string str) {
-        uint maxlength = 100;
-        bytes memory reversed = new bytes(maxlength);
-        uint i = 0;
-        while (v != 0) {
-            uint remainder = v % 10;
-            v = v / 10;
-            reversed[i++] = byte(48 + remainder);
-        }
-        bytes memory inStrb = bytes(inStr);
-        bytes memory s = new bytes(inStrb.length + i + 1);
-        uint j;
-        for (j = 0; j < inStrb.length; j++) {
-            s[j] = inStrb[j];
-        }
-        for (j = 0; j <= i; j++) {
-            s[j + inStrb.length] = reversed[i - j];
-        }
-        str = string(s);
-    }
-
-    function uintToString(uint v) constant returns (string) {
+    function uintToString(uint v) private returns (string) {
         uint maxlength = 100;
         bytes memory reversed = new bytes(maxlength);
         uint i = 0;
@@ -169,14 +152,24 @@ contract KomodoGateway is usingOraclize {
     }
 
     function _finalizeSettle (uint _rand) private {
+        CallbackFired(_rand);
         Pot p = _pots[currentPot];
+        address _winner = 0x0;
         uint cursor = 0;
         for (uint i = 0; i < p._numParticipants; i++) {
             if (_rand <= cursor + p._stakes[p._participants[i]]) {
                 PotWinner(p._participants[i], p._stakes[p._participants[i]]);
-                return;
+                _winner = p._participants[i];
+                break;
             }
             cursor += p._stakes[p._participants[i]];
+        }
+        if (_winner != 0x0) {
+            if (_winner.send(p._amount)) {
+                SentMoney(p._amount);
+                currentPot++;
+                _pot();
+            }
         }
     }
 
