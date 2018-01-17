@@ -49,6 +49,14 @@
       :md-active.sync="_potErrorOccured"
       md-content="An error occured trying to transfer funds into your holdings"
       md-confirm-text="Alright" />
+    <md-dialog-alert
+      :md-active.sync="_hasPotWinner"
+      md-content="Congrats! You won. Attempting to send money"
+      md-confirm-text="Yay" />
+    <md-dialog-alert
+      :md-active.sync="_hasSentMoney"
+      md-content="Congrats! You won. Attempting to send money"
+      md-confirm-text="Yay" />
   </section>
 </template>
 
@@ -66,7 +74,6 @@
         _currentAccount: null,
         _currentPot: null,
         _currentBetAmount: 1,
-        _potError: null,
         balance: null,
       }
     },
@@ -78,8 +85,11 @@
       this._missingContract = false
       this._joinPotEventLastBlock = 0
       this._potErrorEventLastBlock = 0
-      this._potError = null
+      this._sentMoniesEventLastBlock = 0
+      this._potWinnerEventLastBlock = 0
       this._potErrorOccured = null
+      this._hasPotWinner = null
+      this._hasSentMoney = null
     },
     async mounted () {
       const web3 = window.web3
@@ -103,6 +113,27 @@
       this.poller.queue('current_pot', async () => {
         this._currentPot._id = (await this._contract.fetchCurrentPotId.call()).toString()
       })
+      this.poller.queue('sent_monies', async () => {
+        const _sentMoneyEvent = this._contract.SentMoney({}, {
+          fromBlock: 1 + this._sentMoniesEventLastBlock,
+          toBlock: 'latest'
+        })
+        _sentMoneyEvent.watch((error, result) => {
+          if (!error) {
+            this._sentMoniesEventLastBlock = result.blocknumber
+            this._hasSentMoney = true
+          }
+        })
+      })
+
+      this.poller.queue('pot_winner', async () => {
+        const _sentMoneyEvent = this._contract.PotWinner({}, {
+          fromBlock: 0,
+          toBlock: 'latest'
+        })
+        _sentMoneyEvent.watch((_, b) => console.log(b))
+      })
+
       this.poller.queue('join_event', () => {
         const _joinPotEvent = this._contract.JoinPot({
           _potId: this._currentPot._id
@@ -143,11 +174,11 @@
         })
       })
       this.poller.queue('pot_error', () => {
-        const _sentMoneyEvent = this._contract.PotError({}, {
+        const _potErrorEvent = this._contract.PotError({}, {
           fromBlock: 1 + this._potErrorEventLastBlock,
           toBlock: 'latest'
         })
-        _sentMoneyEvent.watch((error, result) => {
+        _potErrorEvent.watch((error, result) => {
           if (!error) {
             this._potErrorEventLastBlock = result.blockNumber
             this._potErrorOccured = true
@@ -158,7 +189,7 @@
             }
           }
 
-          _sentMoneyEvent.stopWatching()
+          _potErrorEvent.stopWatching()
         })
       })
     },

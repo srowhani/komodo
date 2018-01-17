@@ -154,24 +154,20 @@ contract KomodoGateway is usingOraclize {
     function _finalizeSettle (uint _rand) private {
         CallbackFired(_rand);
         Pot p = _pots[currentPot];
-        address _winner = 0x0;
         uint cursor = 0;
         for (uint i = 0; i < p._numParticipants; i++) {
             if (_rand <= cursor + p._stakes[p._participants[i]]) {
                 PotWinner(p._participants[i], p._stakes[p._participants[i]]);
-                _winner = p._participants[i];
-                break;
+                if (p._participants[i].send(p._amount)) {
+                    SentMoney(p._amount);
+                    currentPot++;
+                    _pot();
+                } else {
+                    PotError(p._participants[i], p._amount);
+                }
+                return;
             }
             cursor += p._stakes[p._participants[i]];
-        }
-        if (_winner != 0x0) {
-            if (_winner.send(p._amount)) {
-                SentMoney(p._amount);
-                currentPot++;
-                _pot();
-            } else {
-                PotError(_winner, p._amount);
-            }
         }
     }
 
