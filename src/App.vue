@@ -9,12 +9,6 @@
           <img :src='account_logo'></img>
         </md-avatar>
         <md-button md-menu-trigger>{{default_account}}</md-button>
-
-        <md-menu-content>
-          <md-menu-item v-for="acc in accounts">
-            {{acc}}
-          </md-menu-item>
-        </md-menu-content>
       </md-menu>
     </md-toolbar>
     <router-view></router-view>

@@ -15,7 +15,7 @@ contract KomodoGateway is usingOraclize {
     event FinalizePot(uint _id, uint _amount, uint _numParticipants);
     event TokenAddressChanged(address _old, address _new);
     event IssueRefund(address _user, uint _amount);
-    event PotError(bytes32 _queryId, bytes _proof);
+    event PotError(address _winner, uint _amount);
     event PotWinner(address _addr, uint _stake);
     event CallbackFired(uint _result);
     event InitSettle(uint _amount);
@@ -169,6 +169,8 @@ contract KomodoGateway is usingOraclize {
                 SentMoney(p._amount);
                 currentPot++;
                 _pot();
+            } else {
+                PotError(_winner, p._amount);
             }
         }
     }
