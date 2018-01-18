@@ -74,19 +74,23 @@
         _currentAccount: null,
         _currentPot: null,
         _currentBetAmount: 1,
-        balance: null,
+        balance: null
       }
     },
     created () {
+      // == Services
       this.poller = Poller.init();
+      // == Model
       this._currentPot = null
       this._currentBetAmount = 1
       this._contract = null
       this._missingContract = false
+      // == Block index
       this._joinPotEventLastBlock = 0
       this._potErrorEventLastBlock = 0
       this._sentMoniesEventLastBlock = 0
       this._potWinnerEventLastBlock = 0
+      // == Templating
       this._potErrorOccured = null
       this._hasPotWinner = null
       this._hasSentMoney = null
@@ -108,13 +112,15 @@
       this._currentPot = {
         participants: {}
       }
-      this.$forceUpdate()
 
       this.poller.queue('current_pot', async () => {
-        this._currentPot._id = (await this._contract.fetchCurrentPotId.call()).toString()
+        this._currentPot._id = (await this._contract.fetchCurrentPotId()).toString()
       })
+
       this.poller.queue('sent_monies', async () => {
-        const _sentMoneyEvent = this._contract.SentMoney({}, {
+        const _sentMoneyEvent = this._contract.SentMoney({
+          _potId: this._currentPot._id
+        }, {
           fromBlock: 1 + this._sentMoniesEventLastBlock,
           toBlock: 'latest'
         })
@@ -127,8 +133,10 @@
       })
 
       this.poller.queue('pot_winner', async () => {
-        const _sentMoneyEvent = this._contract.PotWinner({}, {
-          fromBlock: 0,
+        const _sentMoneyEvent = this._contract.PotWinner({
+          _potId: this._currentPot._id
+        }, {
+          fromBlock: 1 + this._potWinnerEventLastBlock,
           toBlock: 'latest'
         })
         _sentMoneyEvent.watch((_, b) => console.log(b))
@@ -174,7 +182,9 @@
         })
       })
       this.poller.queue('pot_error', () => {
-        const _potErrorEvent = this._contract.PotError({}, {
+        const _potErrorEvent = this._contract.PotError({
+          _potId: this._currentPot._id
+        }, {
           fromBlock: 1 + this._potErrorEventLastBlock,
           toBlock: 'latest'
         })
@@ -182,13 +192,7 @@
           if (!error) {
             this._potErrorEventLastBlock = result.blockNumber
             this._potErrorOccured = true
-            this._potError = {
-              msg: `
-                Unable to transfer funds from mutual holding into your funds
-              `
-            }
           }
-
           _potErrorEvent.stopWatching()
         })
       })
@@ -201,8 +205,7 @@
         const bet = web3.toWei(`${this._currentBetAmount}`)
         const account = this._currentAccount
         const contract_address = this._contract.address
-        console.log(this._currentPot._id)
-
+        
         const result = await this._contract.joinPot({
           from: account,
           to: contract_address,

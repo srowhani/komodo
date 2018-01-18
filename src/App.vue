@@ -16,11 +16,15 @@
 </template>
 
 <script>
-import 'vue-material/dist/vue-material.min.css'
 import Vue from 'vue'
 import VueMaterial from 'vue-material'
+import Poller from '@/js/Poller'
 import { toDataUrl } from 'ethereum-blockies'
+
+import 'vue-material/dist/vue-material.min.css'
+
 Vue.use(VueMaterial)
+
 export default {
   name: 'app',
   props: [
@@ -28,6 +32,16 @@ export default {
     'default_account',
     'accounts'
   ],
+  mounted () {
+    this.poller = Poller.init({delay: 5000})
+    this.poller.queue('update_account', () => {
+      this.accounts = window.web3.eth.accounts || []
+      this.default_account = this.accounts[0]
+    })
+  },
+  destroyed () {
+    this.poller.destroy()
+  },
   computed: {
     account_logo () {
       if (!this.default_account) {
