@@ -50,7 +50,7 @@
       md-content="An error occured trying to transfer funds into your holdings"
       md-confirm-text="Alright" />
     <md-dialog-alert
-      :md-active.sync="_hasPotWinner"
+      :md-active.sync="_showPotWinner"
       md-content="Congrats! You won. Attempting to send money"
       md-confirm-text="Yay" />
     <md-dialog-alert
@@ -126,20 +126,27 @@
         })
         _sentMoneyEvent.watch((error, result) => {
           if (!error) {
-            this._sentMoniesEventLastBlock = result.blocknumber
+            this._sentMoniesEventLastBlock = result.blockNumber
             this._hasSentMoney = true
           }
+          _sentMoneyEvent.stopWatching()
         })
       })
 
       this.poller.queue('pot_winner', async () => {
-        const _sentMoneyEvent = this._contract.PotWinner({
+        const _potWinnerEvent = this._contract.PotWinner({
           _potId: this._currentPot._id
         }, {
           fromBlock: 1 + this._potWinnerEventLastBlock,
           toBlock: 'latest'
         })
-        _sentMoneyEvent.watch((_, b) => console.log(b))
+        _potWinnerEvent.watch((error, result) => {
+          if (!error) {
+            this._potWinnerEventLastBlock = result.blockNumber
+            this._hasPotWinner = true
+          }
+          _potWinnerEvent.stopWatching()
+        })
       })
 
       this.poller.queue('join_event', () => {
@@ -153,7 +160,7 @@
         _joinPotEvent.watch((error, result) => {
           if (!error) {
             this._joinPotEventLastBlock = result.blockNumber
-
+            console.log(result)
             let {
               _address,
               _amount
@@ -200,12 +207,17 @@
     destroyed () {
       this.poller.destroy()
     },
+    computed: {
+      _showPotWinner () {
+        return this._hasPotWinner && this._hasSentMoney
+      }
+    },
     methods: {
       async _joinCurrentPot () {
         const bet = web3.toWei(`${this._currentBetAmount}`)
         const account = this._currentAccount
         const contract_address = this._contract.address
-        
+
         const result = await this._contract.joinPot({
           from: account,
           to: contract_address,

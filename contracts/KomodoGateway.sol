@@ -12,14 +12,12 @@ contract KomodoGateway is usingOraclize {
 
     event CreatePot(uint _id);
     event JoinPot(uint indexed _potId, uint _amount, address _address);
-    event FinalizePot(uint _id, uint _amount, uint _numParticipants);
     event TokenAddressChanged(address _old, address _new);
     event IssueRefund(address _user, uint _amount);
-    event PotError(address _winner, uint _amount);
-    event PotWinner(address _addr, uint _stake);
-    event CallbackFired(uint _result);
-    event InitSettle(uint _amount);
-    event SentMoney(uint _amount);
+    event PotError(uint _potId, address _winner, uint _amount);
+    event PotWinner(uint indexed _potId, address _addr, uint _stake);
+    event CallbackFired(uint indexed _potId, uint _result);
+    event SentMoney(uint indexed _potId, uint _amount);
 
     enum PotState {
         OPEN,
@@ -109,7 +107,6 @@ contract KomodoGateway is usingOraclize {
     }
 
     function _initSettle(uint _potAmount) private {
-        InitSettle(_potAmount);
         var _query = "random number between 0 and ".toSlice().concat(uintToString(_potAmount).toSlice());
         oraclize_query("WolframAlpha", _query);
     }
@@ -152,18 +149,18 @@ contract KomodoGateway is usingOraclize {
     }
 
     function _finalizeSettle (uint _rand) private {
-        CallbackFired(_rand);
+        CallbackFired(currentPot, _rand);
         Pot p = _pots[currentPot];
         uint cursor = 0;
         for (uint i = 0; i < p._numParticipants; i++) {
             if (_rand <= cursor + p._stakes[p._participants[i]]) {
-                PotWinner(p._participants[i], p._stakes[p._participants[i]]);
+                PotWinner(currentPot, p._participants[i], p._stakes[p._participants[i]]);
                 if (p._participants[i].send(p._amount)) {
-                    SentMoney(p._amount);
-                    currentPot++;
+                    SentMoney(currentPot, p._amount);
+                    currentPot += 1;
                     _pot();
                 } else {
-                    PotError(p._participants[i], p._amount);
+                    PotError(currentPot, p._participants[i], p._amount);
                 }
                 return;
             }
