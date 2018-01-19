@@ -49,14 +49,20 @@
       :md-active.sync="_potErrorOccured"
       md-content="An error occured trying to transfer funds into your holdings"
       md-confirm-text="Alright" />
-    <md-dialog-alert
-      :md-active.sync="_showPotWinner"
-      md-content="Congrats! You won. Attempting to send money"
-      md-confirm-text="Yay" />
-    <md-dialog-alert
-      :md-active.sync="_hasSentMoney"
-      md-content="Congrats! You won. Attempting to send money"
-      md-confirm-text="Yay" />
+    <md-dialog :md-active.sync="_showPotWinner">
+      Pot winner has been announced as {{_potWinner}}
+      <md-dialog-actions>
+       <md-button class="md-primary" @click="_showPotWinner = false">Close</md-button>
+     </md-dialog-actions>
+    </md-dialog>
+    <md-dialog :md-active.sync="_hasSentMoney">
+      Congrats! You have won {{_currentPot._id}}
+      With amount x
+      As address {{_potWinner}}
+      <md-dialog-actions>
+       <md-button class="md-primary" @click="_hasSentMoney = false">Close</md-button>
+     </md-dialog-actions>
+    </md-dialog>
   </section>
 </template>
 
@@ -114,7 +120,11 @@
       }
 
       this.poller.queue('current_pot', async () => {
-        this._currentPot._id = (await this._contract.fetchCurrentPotId()).toString()
+        const id = (await this._contract.fetchCurrentPotId()).toString()
+        if (id !== this.currentPot._id) {
+          this.currentPot.participants = {}
+        }
+        this._currentPot._id = id
       })
 
       this.poller.queue('sent_monies', async () => {
@@ -143,7 +153,13 @@
         _potWinnerEvent.watch((error, result) => {
           if (!error) {
             this._potWinnerEventLastBlock = result.blockNumber
-            this._hasPotWinner = true
+
+            const _winner = result.args._addr
+
+            if (this._currentAccount !== _winner) {
+              this._hasPotWinner = true
+            }
+            
           }
           _potWinnerEvent.stopWatching()
         })

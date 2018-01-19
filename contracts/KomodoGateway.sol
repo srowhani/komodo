@@ -10,12 +10,16 @@ contract KomodoGateway is usingOraclize {
     using SafeMath for *;
     using strings for *;
 
-    event CreatePot(uint _id);
+    event CreatePot(uint indexed _id);
+    event ClosePot(uint indexed _id);
     event JoinPot(uint indexed _potId, uint _amount, address _address);
+
     event TokenAddressChanged(address _old, address _new);
     event IssueRefund(address _user, uint _amount);
+
     event PotError(uint _potId, address _winner, uint _amount);
     event PotWinner(uint indexed _potId, address _addr, uint _stake);
+
     event CallbackFired(uint indexed _potId, uint _result);
     event SentMoney(uint indexed _potId, uint _amount);
 
@@ -29,6 +33,7 @@ contract KomodoGateway is usingOraclize {
         uint _id;
         uint _numParticipants;
         uint _amount;
+        bool _locked;
         mapping (address => uint) _stakes;
         mapping (uint => address) _participants;
     }
@@ -141,11 +146,18 @@ contract KomodoGateway is usingOraclize {
 
     function _pot() private {
         Pot memory p;
+
         p._id = currentPot;
         p._numParticipants = 0;
         p._amount = 0;
+        p._locked = false;
+
         _pots[currentPot] = p;
         CreatePot(currentPot);
+    }
+
+    function _lockPot (uint _potId) private {
+        _pots[_potId]._locked = true;
     }
 
     function _finalizeSettle (uint _rand) private {
@@ -157,6 +169,7 @@ contract KomodoGateway is usingOraclize {
                 PotWinner(currentPot, p._participants[i], p._stakes[p._participants[i]]);
                 if (p._participants[i].send(p._amount)) {
                     SentMoney(currentPot, p._amount);
+                    _lockPot(currentPot);
                     currentPot += 1;
                     _pot();
                 } else {
